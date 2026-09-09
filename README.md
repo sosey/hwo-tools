@@ -24,6 +24,8 @@ pip install git_ssh://git@github.com:spacetelescope/syotools.git
 ```
 Make sure that your environment variables point to the appropriate place to find:
 
+NOTE: If you already have $PYSYN_CDBS set in your environment, you *do NOT need* to set the environment
+variable to the subset that comes with SYOTools - a full checkout will work just as well.
 ```
 export PYSYN_CDBS= "the full path to where syotools/reference_data/pysynphot_data lives in your env"
 export SYOTOOLS_DATA_DIR="full path to syotools/reference_data in your env" 
@@ -82,7 +84,7 @@ The above commands should have pulled in all necessary dependencies except bokeh
 ```  pip install bokeh jupyter```
 
 
-More specific, complete environments
+More specific, complete environments for conda-forge users.
    - The hwotools_linuxx86-64.yml files are for an 64-bit Intel Linux computer, and come with MKL-accelerated numpy and scipy.
    - The hwotools_macarm.yml files are for Apple Silicon computers, and come with Apple Accelerate-accelerated numpy and scipy.
 
@@ -113,3 +115,50 @@ BasicRun.py or create your own.
 The camera_wrapper and uvspec_wrapper notebooks show the simplest way to call these tools, using bare python wrappers around the SYOTools API. These allow you to get SNR results with one import and one line of code. Use these if you need to run in 'batch mode', which the online GUI tools will not do. 
 
 For a deeper illustration of how the tools work, try one of the notebooks in the notebooks directory, like Camera_ETC_Tutorial and UVSpec_ETC_Tutorial.  
+
+
+## Migrating from SYOTools 1.3 and earlier to SYOTools 1.4 (HWOME version)
+### 1. You need to set the "unknown" last, now.
+
+Previous versions of SYOTools had defaults sourced from LUVOIR-era telescopes they could call on to do calculations immediately. With HWOME and its more detailed EACs, all the necessary properties must be set before any calculations can be done.
+
+Previous versions of SYOTools defaulted to computing for SNR and would start to do so immediately, recalculating any time a parameter changed. The new SYOTools WILL recompute on all changes, but only once the SourceExposure.unknown is set to "snr", "exptime", or "magnitude".
+
+The new HWOME paradigm is very different. Before, the process of setting up SYOTools for a calculation was very loose. You needed to:
+* Create a Telescope
+* Create a SourceExposure (our use Camera.create_exposure(), Spectrograph.create_exposure(), etc...)
+* Create a Source
+* Create a Camera, Spectrograph, or IFS
+* Load an EAC from the SEI definitions
+* Load that instrument's definition from SEI
+* Add the Source to the Exposure
+* Add the Exposure to the Spectrograph or IFS or Camera
+* Add the IFS or Camera or Spectrograph to the Telescope
+* Set exposure time in the SourceExposure
+* Set snr_goal in the SourceExposure
+* Set the unknown to be solved for, in the SourceExposure.
+
+Crucially, you could do those things in nearly any order.
+
+### 2. You do not create a Camera, Spectrograph, or IFS any more. 
+Instead, you select the instrument from the Telescope.instruments dict.
+
+The function that populates the Telescope with an EAC definition from HWOME *populates the entire EAC for you*, and you simply select the already-loaded instrument from the Telescope.instruments list.
+
+This new behavior supports SCDDs that use more than one instrument.
+
+### 3. There are more than two instruments now.
+Instrument now means Instrument Channel, and there are now many, entirely defined by data from HWOME.
+
+Previous versions of SYOTools had one Camera, "HRI"; one Spectograph, "UVI"; and one IFU, "IFS". Now (for instance) there are four data-defined cameras: HRI_S.HRI_S_UVIS, HRI_S.HRI_S_NIR, HRI_A.HRI_A_VIS_Imager, and UV_MOS.FUV_IMG_Imager channels, each with their own filters (which themselves no longer have simple names like "V" and "R"), detectors, and so on.
+
+It is recommended to use functions like telescope.find_instrument_with() to *discover* the filter bandpass you need, rather than rely on specific names; the entire system is data-driven and in flux.
+
+
+Some more minor notes:
+* The outputs of calculate(), calculate_snr(), calculate_exptime(), and calculate_magnitude() are always lists now, even if they only have one element
+* The outputs of imaging, spectroscopic, and IFU calculations can now be just a single filter/disperser OR all of them.
+  * In previous versions of SYOTools, camera calculations ran every filter; spectroscopy calculations ran one spectroscopic band you had to define. In the new version, both instrument types can do either.
+  * To run just one filter (or spectroscopic bandpass): set instrument.band or pass a custom_band keyword argument into calculate(), calculate_snr(), calculate_exptime(), or calculate_magnitude(). To run all filters or all spectroscopic bandpasses, either don't set instrument.band, set instrument.band to `None`, or pass `None` as the custom_band keyword argument into calculate(), calculate_snr(), etc.
+* SNR is now set with an attribute just called "snr". Previous SYOTools used the name "snr_goal" as the input SNR name.
+

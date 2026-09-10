@@ -62,7 +62,7 @@ def initialize_setup():
 
     hwo = Telescope() 
     hwo.set_from_hwome('EAC5')
-    suitable_instruments, suitable_bands = hwo.find_instrument_with("disperser")
+    suitable_instruments, suitable_bands = hwo.find_instrument_with(instrument="MOS", kind="disperser")
     print(suitable_bands)
 
     template_to_start_with = 'QSO' 
@@ -81,10 +81,10 @@ def initialize_setup():
                                                    f=syn.units.convert_flux(uvi_source.sed.waveset, uvi_source.sed(uvi_source.sed.waveset), FLUXUNIT).value)) 
     print(' flux = ', uvi_source.sed(uvi_source.sed.waveset))
 
-    snr_results = ColumnDataSource(data=dict(w=wave.value, sn = snr))
-    background = instrument.sky(wave) + uvi_exp.thermal(wave)
+    snr_results = ColumnDataSource(data=dict(w=wave[0].value, sn = snr))
+    background = uvi_exp.sky(wave[0]) + uvi_exp.thermal(wave[0])
 
-    instrument_info = ColumnDataSource(data=dict(wave=wave, bef=syn.units.convert_flux(wave, background, FLUXUNIT).value))
+    instrument_info = ColumnDataSource(data=dict(wave=wave[0], bef=syn.units.convert_flux(wave[0], background, FLUXUNIT).value))
 
 initialize_setup()
 
@@ -144,10 +144,10 @@ def update_data(attrname, old, new): # use this one for updating pysynphot templ
     flux_converted = syn.units.convert_flux(uvi_source.sed.waveset, uvi_source.sed(uvi_source.sed.waveset), FLUXUNIT)
 
     spectrum_template.data = dict(w=uvi_source.sed.waveset.value, f=flux_converted.value) 
-    snr_results.data = dict(w=wave.value, sn = snr_fixed) 
+    snr_results.data = dict(w=wave[0].value, sn = snr_fixed) 
 
-    background = instrument.sky(wave) + uvi_exp.thermal(wave)
-    instrument_info = ColumnDataSource(data=dict(wave=wave, bef=syn.units.convert_flux(wave, background, FLUXUNIT).value))
+    background = uvi_exp.sky(wave[0]) + uvi_exp.thermal(wave[0])
+    instrument_info = ColumnDataSource(data=dict(wave=wave[0], bef=syn.units.convert_flux(wave[0], background, FLUXUNIT).value))
 
 
     # set the axes to autoscale appropriately 

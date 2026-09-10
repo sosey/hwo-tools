@@ -120,37 +120,35 @@ For a deeper illustration of how the tools work, try one of the notebooks in the
 ## Migrating from SYOTools 1.3 and earlier to SYOTools 1.4 (HWOME version)
 ### 1. You need to set the "unknown" last, now.
 
-Previous versions of SYOTools had defaults sourced from LUVOIR-era telescopes they could call on to do calculations immediately. With HWOME and its more detailed EACs, all the necessary properties must be set before any calculations can be done.
+Previous versions of SYOTools had defaults sourced from LUVOIR-era telescopes and had the necessary information to do calculations immediately. With HWOME and its more detailed EACs, all the necessary properties must be set before any calculations can be done.
 
-Previous versions of SYOTools defaulted to computing for SNR and would start to do so immediately, recalculating any time a parameter changed. The new SYOTools WILL recompute on all changes, but only once the SourceExposure.unknown is set to "snr", "exptime", or "magnitude".
+Previous versions of SYOTools defaulted to computing for SNR and would start to do so immediately, recalculating any time a parameter changed. The new SYOTools WILL recompute on all changes, but only after the SourceExposure.unknown is set to "snr", "exptime", or "magnitude" for the first time.
 
-The new HWOME paradigm is very different. Before, the process of setting up SYOTools for a calculation was very loose. You needed to:
-* Create a Telescope
-* Create a SourceExposure (our use Camera.create_exposure(), Spectrograph.create_exposure(), etc...)
-* Create a Source
-* Create a Camera, Spectrograph, or IFS
-* Load an EAC from the SEI definitions
-* Load that instrument's definition from SEI
-* Add the Source to the Exposure
-* Add the Exposure to the Spectrograph or IFS or Camera
-* Add the IFS or Camera or Spectrograph to the Telescope
-* Set exposure time in the SourceExposure
-* Set snr_goal in the SourceExposure
-* Set the unknown to be solved for, in the SourceExposure.
-
-Crucially, you could do those things in nearly any order.
+This is the new order of operations:
+* Create a Telescope() 
+* Load an EAC into the Telescope with Telescope.set_from_hwome()
+* Select an instrument from the Telescope's list
+  * Manually
+  * Runtime discovery using Telescope.find_instrument_with()
+* Create the correct class of SourceExposure() (or use Instrument.create_exposure())
+* Create a Source()
+* Set the source SED (optional, there is still a default flat source)
+* Add the Source to the SourceExposure
+* Add the SourceExposure to the Instrument
+* Set exptime and/or snr in the SourceExposure
+* Set the unknown to be solved for, in the SourceExposure. **(must be done last)**
 
 ### 2. You do not create a Camera, Spectrograph, or IFS any more. 
 Instead, you select the instrument from the Telescope.instruments dict.
 
 The function that populates the Telescope with an EAC definition from HWOME *populates the entire EAC for you*, and you simply select the already-loaded instrument from the Telescope.instruments list.
 
-This new behavior supports SCDDs that use more than one instrument.
+This new behavior supports SCDDs that use more than one instrument, and running all SCDDs through a single telescope configuration for DISRA uses.
 
 ### 3. There are more than two instruments now.
 Instrument now means Instrument Channel, and there are now many, entirely defined by data from HWOME.
 
-Previous versions of SYOTools had one Camera, "HRI"; one Spectograph, "UVI"; and one IFU, "IFS". Now (for instance) there are four data-defined cameras: HRI_S.HRI_S_UVIS, HRI_S.HRI_S_NIR, HRI_A.HRI_A_VIS_Imager, and UV_MOS.FUV_IMG_Imager channels, each with their own filters (which themselves no longer have simple names like "V" and "R"), detectors, and so on.
+Previous versions of SYOTools had one Camera, "HRI"; one Spectograph, "UVI"; and one IFU, "IFS". Now (for instance) there are four data-defined cameras: HRI_S.HRI_S_UVIS, HRI_S.HRI_S_NIR, HRI_A.HRI_A_VIS_Imager, and UV_MOS.FUV_IMG_Imager channels, each with their own filters (which themselves no longer have simple names like "V" and "R"), detectors, and so on. All are now considered Instruments; Telescope no longer has separate attributes to hold a single camera, spectrograph, or ifs.
 
 It is recommended to use functions like telescope.find_instrument_with() to *discover* the filter bandpass you need, rather than rely on specific names; the entire system is data-driven and in flux.
 
@@ -158,7 +156,7 @@ It is recommended to use functions like telescope.find_instrument_with() to *dis
 Some more minor notes:
 * The outputs of calculate(), calculate_snr(), calculate_exptime(), and calculate_magnitude() are always lists now, even if they only have one element
 * The outputs of imaging, spectroscopic, and IFU calculations can now be just a single filter/disperser OR all of them.
-  * In previous versions of SYOTools, camera calculations ran every filter; spectroscopy calculations ran one spectroscopic band you had to define. In the new version, both instrument types can do either.
-  * To run just one filter (or spectroscopic bandpass): set instrument.band or pass a custom_band keyword argument into calculate(), calculate_snr(), calculate_exptime(), or calculate_magnitude(). To run all filters or all spectroscopic bandpasses, either don't set instrument.band, set instrument.band to `None`, or pass `None` as the custom_band keyword argument into calculate(), calculate_snr(), etc.
+  * In previous versions of SYOTools, camera calculations ran every filter; spectroscopy and ifs calculations ran one selected spectroscopic band. In the new version, all instrument types can do either.
+  * To run just one filter (or spectroscopic bandpass): set instrument.band or pass a custom_band keyword argument into calculate(), calculate_snr(), calculate_exptime(), or calculate_magnitude(). To run all filters or all spectroscopic bandpasses, either don't set instrument.band, set instrument.band to `None`, or pass `custom_band=None` to calculate(), calculate_snr(), etc.
 * SNR is now set with an attribute just called "snr". Previous SYOTools used the name "snr_goal" as the input SNR name.
 

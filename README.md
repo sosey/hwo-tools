@@ -157,6 +157,7 @@ Some more minor notes:
 * The outputs of calculate(), calculate_snr(), calculate_exptime(), and calculate_magnitude() are always lists now, even if they only have one element
 * The outputs of imaging, spectroscopic, and IFU calculations can now be just a single filter/disperser OR all of them.
   * In previous versions of SYOTools, camera calculations ran every filter; spectroscopy and ifs calculations ran one selected spectroscopic band. In the new version, all instrument types can do either.
-  * To run just one filter (or spectroscopic bandpass): set instrument.band or pass a custom_band keyword argument into calculate(), calculate_snr(), calculate_exptime(), or calculate_magnitude(). To run all filters or all spectroscopic bandpasses, either don't set instrument.band, set instrument.band to `None`, or pass `custom_band=None` to calculate(), calculate_snr(), etc.
+  * To run just one filter (or spectroscopic bandpass): set instrument.band or pass a `custom_band=<name of band>` keyword argument into calculate(), calculate_snr(), calculate_exptime(), or calculate_magnitude(). 
+  * To run all filters or all spectroscopic bandpasses, either don't set instrument.band, set instrument.band to `None`, or pass `custom_band=None` to calculate(), calculate_snr(), etc.
 * SNR is now set with an attribute just called "snr". Previous SYOTools used the name "snr_goal" as the input SNR name.
 
